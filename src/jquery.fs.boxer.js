@@ -302,8 +302,10 @@
 		// Bind events
 		data.$window.on("resize.boxer", pub.resize)
 					.on("keydown.boxer", _onKeypress);
-		data.$body.on("touchstart.boxer click.boxer", "#boxer-overlay, #boxer .boxer-close", _onClose)
-				  .on("touchmove.boxer", _killEvent);
+		data.$body.on("touchstart.boxer click.boxer", "#boxer-overlay, #boxer .boxer-close", _onClose);
+		if (data.gallery.active) {
+			data.$body.on("touchmove.boxer", _killEvent);
+		}
 
 		if (data.gallery.active) {
 			data.$boxer.on("touchstart.boxer click.boxer", ".boxer-control", _advanceGallery);
@@ -1039,7 +1041,7 @@
 		data.containerWidth  = data.contentWidth;
 
 		data.$content.css({
-			height: data.contentHeight,
+			height: !data.isMobile ? data.contentHeight : "auto",
 			width:  data.contentWidth
 		});
 	}
@@ -1082,30 +1084,33 @@
 	 * @param e [object] "Event data"
 	 */
 	function _onTouchMove(e) {
-		var touch = (typeof e.originalEvent.targetTouches !== "undefined") ? e.originalEvent.targetTouches[0] : null;
-
-		data.delta = data.xStart - ((touch) ? touch.pageX : e.clientX);
-
-		// Only prevent event if trying to swipe
-		if (data.delta > 20) {
+		if (data.gallery.active) {
 			_killEvent(e);
+			var touch = (typeof e.originalEvent.targetTouches !== "undefined") ? e.originalEvent.targetTouches[0] : null;
+
+			data.delta = data.xStart - ((touch) ? touch.pageX : e.clientX);
+
+			// Only prevent event if trying to swipe
+			if (data.delta > 20) {
+				_killEvent(e);
+			}
+
+			data.canSwipe = true;
+
+			var newLeft = -data.delta;
+			if (newLeft < data.touchMin) {
+				newLeft = data.touchMin;
+				data.canSwipe = false;
+			}
+			if (newLeft > data.touchMax) {
+				newLeft = data.touchMax;
+				data.canSwipe = false;
+			}
+
+			data.$image.css({ transform: "translate3D("+newLeft+"px,0,0)" });
+
+			data.touchTimer = _startTimer(data.touchTimer, 300, function() { _onTouchEnd(e); });
 		}
-
-		data.canSwipe = true;
-
-		var newLeft = -data.delta;
-		if (newLeft < data.touchMin) {
-			newLeft = data.touchMin;
-			data.canSwipe = false;
-		}
-		if (newLeft > data.touchMax) {
-			newLeft = data.touchMax;
-			data.canSwipe = false;
-		}
-
-		data.$image.css({ transform: "translate3D("+newLeft+"px,0,0)" });
-
-		data.touchTimer = _startTimer(data.touchTimer, 300, function() { _onTouchEnd(e); });
 	}
 
 	/**
